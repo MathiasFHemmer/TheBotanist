@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4bf82929e51378541bbc0d1ea11a55b0, type: 3}
+  m_Name: Sample3
+  m_EditorClassIdentifier: 
+  Axiom: X
+  Rules:
+  - Symbol: 88
+    Next: F[-X][+X]FX
+    Odds: 1
+  - Symbol: 70
+    Next: FA
+    Odds: 1
+  TwigColor: {r: 0.5283019, g: 0.31092665, b: 0.16696332, a: 1}
+  RootTwigWidth: 0.21
+  AvarageLifetime: 10
+  MaxIterations: 7
+  AvarageTwigLenght: 0.11
+  AvarageBranchAngle: 9.4
+  WaterGrowthUsagePerSecond: 7.09
+  TwigBranchDepthLengthFalloff: 0.35
+  TwigBranchDepthWidthFalloff: 0.6
+  TwigLenghtMinMax: {x: 1, y: 1.2}
+  TwigAngleMinMax: {x: 0, y: 0}
+  BranchAngleMinMax: {x: 15, y: 25}
