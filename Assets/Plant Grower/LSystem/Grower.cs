@@ -42,8 +42,21 @@ public class Grower : MonoBehaviour
     public List<Twig> Plant;
     public List<ParametrizedTreeNode> PlantSkeleton;
 
-    public float CurrentWaterLevel = 100f;
-    public Transform WaterFillUI;
+    public float WaterMeterCurrent = 100f;
+    public float WaterMeterMax = 100f;
+
+    public delegate void OnPlantFullGrown();
+    public event OnPlantFullGrown OnPlantFullGrownHandler;
+
+    public delegate void OnWaterUsed(float current, float max);
+    public event OnWaterUsed OnWaterUsedHandler;
+    public delegate void OnWaterAdded(float ammount, float max);
+    public event OnWaterAdded OnWaterAddedHandler;
+    public delegate void OnWaterDepleted();
+    public event OnWaterDepleted OnWaterDepletedHandler;
+
+    public delegate void OnGrowth(float current, float max);
+    public event OnGrowth OnGrowthHandler;
 
     void Awake()
     {
@@ -56,34 +69,39 @@ public class Grower : MonoBehaviour
 
     private void Update()
     {
+        var iterationFinished = Iteration >= (PlantDNA.AvarageLifetime / _timerMax);
+
         if (Input.GetMouseButtonUp(0))
-            CurrentWaterLevel += 30;
-        if (CurrentWaterLevel < 0)
+        {
+            WaterMeterCurrent = Mathf.Clamp(WaterMeterCurrent + 30, 0, WaterMeterMax);
+            OnWaterAddedHandler?.Invoke(30, WaterMeterMax);
+        }
+
+        if (WaterMeterCurrent < 0)
             return;
 
         _timer += Time.deltaTime;
-        if(_timer > _timerMax && Iteration <= (PlantDNA.AvarageLifetime / _timerMax))
+        if(_timer >= _timerMax && !iterationFinished)
         {
             _timer = 0f;
             Draw();
-            
+            OnGrowthHandler?.Invoke(Iteration, PlantDNA.AvarageLifetime / _timerMax);
         }
-        CurrentWaterLevel -= Time.deltaTime * PlantDNA.WaterGrowthUsagePerSecond;
-        UpdateUI();
+
+        WaterMeterCurrent -= Time.deltaTime * PlantDNA.WaterGrowthUsagePerSecond;
+        OnWaterUsedHandler?.Invoke(WaterMeterCurrent, WaterMeterMax);
+
+        if (WaterMeterCurrent <= 0)
+            OnWaterDepletedHandler?.Invoke();
+
+        if (iterationFinished)
+            OnPlantFullGrownHandler?.Invoke();
     }
 
-    public void UpdateUI()
-    {
-        if(WaterFillUI != null)
-        {
-            var newScale = new Vector3(1, CurrentWaterLevel / 100, 1);
-            WaterFillUI.localScale = newScale;
-        }
-    }
+
 
     public void Regrow()
     {
-        Debug.Log("Regrow");
         Random.InitState((int)System.DateTime.Now.Ticks);
 
         foreach (var t in Plant)
@@ -116,7 +134,7 @@ public class Grower : MonoBehaviour
         contextStack.Peek().TwigWidth = PlantDNA.RootTwigWidth;
         contextStack.Peek().LastTwigEnd = (Vector2)transform.position;
 
-        var currentPercent = (float)Iteration / (PlantDNA.AvarageLifetime / 0.1f);
+        var currentPercent = (float)Iteration / (PlantDNA.AvarageLifetime / _timerMax);
         var maxIndex = (int)(PlantSkeleton.Count * currentPercent);
         var parametrizedTree = PlantSkeleton.Take(maxIndex);
 

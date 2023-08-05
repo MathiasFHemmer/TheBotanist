@@ -48,7 +48,7 @@ public class Parser
 
     public Parser(PlantDNA plantDNA)
     {
-        this.PlantDNA = plantDNA;
+        PlantDNA = plantDNA;
         CurrentWord = plantDNA.Axiom;
     }
 
@@ -60,7 +60,6 @@ public class Parser
         for (int i = 0; i < sentence.Length; i++)
         {
             var matchingRules = PlantDNA.Rules.Where(rule => sentence[i] == rule.Symbol);
-
             if (matchingRules.Any())
             {
                 var selectedRule = RoulleteRuleSelector(matchingRules.ToList());
