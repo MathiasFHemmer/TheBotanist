@@ -8,17 +8,18 @@ public class Twig
 {
     public Vector3 StartPosition;
     public Vector3 EndPosition;
-
-    public GameObject Dummy = null;
-    public LineRenderer LineRenderer = null;
 }
 
 public class Context
 {
     public float TwigWidth = 0f;
+    public float AvarageTwigLength = 0f;
     public Vector2 LastTwigEnd = new Vector2(0,0);
     public float BaseRotation = 0f;
     public int Depth = 0;
+
+    public GameObject Dummy;
+    public LineRenderer LineRenderer;
 
     public Context Clone()
     {
@@ -27,7 +28,8 @@ public class Context
             LastTwigEnd = this.LastTwigEnd, 
             BaseRotation = this.BaseRotation, 
             TwigWidth = this.TwigWidth,
-            Depth = this.Depth
+            Depth = this.Depth,
+            AvarageTwigLength= this.AvarageTwigLength
         };
     }
 }
@@ -63,6 +65,7 @@ public class Grower : MonoBehaviour
     void Awake()
     {
         Plant = new List<Twig>();
+        CurrentPlantContext = new Stack<Context>();
         Regrow();       
     }
 
@@ -103,16 +106,30 @@ public class Grower : MonoBehaviour
     {
         Random.InitState((int)System.DateTime.Now.Ticks);
 
-        foreach (var t in Plant)
-            Destroy(t.Dummy);
+        foreach (var c in CurrentPlantContext)
+            Destroy(c.Dummy);
 
         Plant = new List<Twig>();
         Parser = new Parser(PlantDNA);
         CurrentPlantContext = new Stack<Context>();
+
+        var dummy = new GameObject();
+        dummy.transform.parent = transform;
+        var renderer = dummy.AddComponent<LineRenderer>();
+
+        renderer.positionCount = 1;
+        renderer.material = new Material(Shader.Find("Sprites/Default"));
+        renderer.SetPosition(renderer.positionCount - 1, (Vector2)transform.position);
+        renderer.startWidth = renderer.endWidth = PlantDNA.RootTwigWidth;
+        renderer.startColor = renderer.endColor = PlantDNA.TwigColor;
+
         var defaultContext = new Context
         {
             TwigWidth = PlantDNA.RootTwigWidth,
             LastTwigEnd = (Vector2)transform.position,
+            Dummy = dummy,
+            LineRenderer = renderer,
+            AvarageTwigLength = PlantDNA.AvarageTwigLenght
         };
         CurrentPlantContext.Push(defaultContext);
         LastGrowthIndex = 0;
@@ -142,66 +159,54 @@ public class Grower : MonoBehaviour
 
         foreach (var data in parametrizedTree)
         {
-            if(data.Symbol == 'F')
-            {
-                var endLenght = (Vector2.up * PlantDNA.AvarageTwigLenght * PlantDNA.TwigBranchDepthLengthFalloff);
-                var twigRotation = (data.TwigAngleVariation ?? 0) + CurrentPlantContext.Peek().BaseRotation;
+            var currentContext = CurrentPlantContext.Peek();
 
-                var dummy = new GameObject();
-                dummy.transform.parent = transform;
-                var lr = dummy.AddComponent<LineRenderer>();
+            if (data.Symbol == 'F')
+            {
+                var endLenght = Vector2.up * currentContext.AvarageTwigLength;
+                var twigRotation = (data.TwigAngleVariation ?? 0) + CurrentPlantContext.Peek().BaseRotation;
 
                 var twig = new Twig()
                 {
-                    StartPosition = CurrentPlantContext.Peek().LastTwigEnd,
-                    EndPosition = CurrentPlantContext.Peek().LastTwigEnd + (Vector2)(Quaternion.AngleAxis(twigRotation, Vector3.forward) * endLenght),
-                    Dummy = dummy,
-                    LineRenderer = lr
+                    StartPosition = currentContext.LastTwigEnd,
+                    EndPosition = currentContext.LastTwigEnd + (Vector2)(Quaternion.AngleAxis(twigRotation, Vector3.forward) * endLenght),
                 };
-
-                lr.positionCount = 2;
-                lr.useWorldSpace = false;
-                lr.startWidth = lr.endWidth = CurrentPlantContext.Peek().TwigWidth;
-                lr.material = new Material(Shader.Find("Sprites/Default"));
-                lr.startColor = lr.endColor = PlantDNA.TwigColor;
-                lr.SetPositions(new Vector3[]
-                {
-                    (Vector2)twig.StartPosition,
-                    (Vector2)twig.EndPosition,
-                });
-
-                CurrentPlantContext.Peek().LastTwigEnd = twig.EndPosition;
-                CurrentPlantContext.Peek().TwigWidth *= .98f;
-
+                currentContext.LastTwigEnd = twig.EndPosition;
+                currentContext.TwigWidth *= .98f;
                 Plant.Add(twig);
+
+                currentContext.LineRenderer.positionCount++;
+                currentContext.LineRenderer.SetPosition(currentContext.LineRenderer.positionCount - 1, twig.EndPosition);
+                currentContext.LineRenderer.endWidth = currentContext.TwigWidth;
             }
             else if(data.Symbol == '+' || data.Symbol == '-')
-            {
                 CurrentPlantContext.Peek().BaseRotation += data.BranchAngleVariation ?? 0;
-            }
             else if(data.Symbol == '[')
             {
-                var newContext = CurrentPlantContext.Peek().Clone();
+                var dummy = new GameObject();
+                dummy.transform.parent = currentContext.Dummy.transform;
+                var renderer = dummy.AddComponent<LineRenderer>();
+
+                var newTwighStartWidth = currentContext.TwigWidth *= PlantDNA.TwigBranchDepthWidthFalloff;
+
+                renderer.positionCount = 1;
+                renderer.material = new Material(Shader.Find("Sprites/Default"));
+                renderer.startColor = renderer.endColor = PlantDNA.TwigColor;
+                renderer.SetPosition(renderer.positionCount - 1, currentContext.LastTwigEnd);
+                renderer.startWidth = renderer.endWidth = newTwighStartWidth;
+
+                var newContext = currentContext.Clone();
                 newContext.Depth++;
-                newContext.TwigWidth *= PlantDNA.TwigBranchDepthWidthFalloff;
+                newContext.TwigWidth = newTwighStartWidth;
+                newContext.Dummy = dummy;
+                newContext.LineRenderer = renderer;
+                newContext.AvarageTwigLength *= PlantDNA.TwigBranchDepthLengthFalloff;
+
                 CurrentPlantContext.Push(newContext);
             }
             else if(data.Symbol == ']')
-            {
                 CurrentPlantContext.Pop();
-            }
-            else if (data.Symbol == 'A')
-            {
-                var twig = Plant.Last();
-                var dir = (twig.EndPosition - twig.StartPosition).normalized;
-                twig.EndPosition += dir * (PlantDNA.AvarageTwigLenght);
-
-                CurrentPlantContext.Peek().LastTwigEnd = twig.EndPosition;
-                CurrentPlantContext.Peek().TwigWidth *= .98f;
-
-                twig.LineRenderer.SetPosition(1, twig.EndPosition);
-                twig.LineRenderer.endWidth = CurrentPlantContext.Peek().TwigWidth;
-            }
+            
         }
     }
 }

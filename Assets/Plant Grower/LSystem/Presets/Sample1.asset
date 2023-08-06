@@ -24,14 +24,14 @@ MonoBehaviour:
     Next: F[-F]F
     Odds: 0.34
   TwigColor: {r: 0.14017446, g: 0.6603774, b: 0.2353931, a: 1}
-  RootTwigWidth: 0.1
-  MaxIterations: 10
+  RootTwigWidth: 0.3
+  MaxIterations: 5
   WaterGrowthUsagePerSecond: 25
   AvarageLifetime: 5
-  AvarageTwigLenght: 0.2
+  AvarageTwigLenght: 0.25
   AvarageBranchAngle: 30
-  TwigBranchDepthLengthFalloff: 1.5
-  TwigBranchDepthWidthFalloff: 1
+  TwigBranchDepthLengthFalloff: 1.2
+  TwigBranchDepthWidthFalloff: 0.98
   TwigLenghtMinMax: {x: 0, y: 0}
-  TwigAngleMinMax: {x: 0, y: 0}
+  TwigAngleMinMax: {x: 5, y: 20}
   BranchAngleMinMax: {x: 0, y: 0}
