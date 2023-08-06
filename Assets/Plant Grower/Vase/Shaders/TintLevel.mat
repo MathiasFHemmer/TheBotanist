@@ -41,7 +41,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Texture2DAsset_bb33575a238c4bf19eb0792c94fd0cc6_Out_0_Texture2D:
-        m_Texture: {fileID: 2800000, guid: dfba8e888298d8f43b5f0ca08e741178, type: 3}
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - unity_Lightmaps:
@@ -58,7 +58,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _TintLevel: 0
+    - _TintLevel: 0.46
     m_Colors: []
   m_BuildTextureStacks: []
   m_AllowLocking: 1

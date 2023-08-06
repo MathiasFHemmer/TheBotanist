@@ -7,7 +7,7 @@ public class GrowthMeterController : MonoBehaviour
     string GrowSimualtorTag = "GrowSimulator";
     Grower GrowSimulator;
 
-    Transform GrowthMeterFillTransform;
+    Material GrowthMeterFillMaterial;
     void Start()
     {
         GrowSimulator = GameObject.FindGameObjectWithTag(GrowSimualtorTag).GetComponent<Grower>();
@@ -17,8 +17,8 @@ public class GrowthMeterController : MonoBehaviour
             return;
         }
 
-        GrowthMeterFillTransform = GetComponentInChildren<GrowthMeterFillComponentTag>()?.gameObject.transform;
-        if (GrowthMeterFillTransform == null)
+        GrowthMeterFillMaterial = GetComponentInChildren<GrowthMeterFillComponentTag>()?.gameObject.transform.GetComponent<Renderer>().material;
+        if (GrowthMeterFillMaterial == null)
         {
             Debug.Log("Missing growth meter fill for UI display!");
             return;
@@ -29,7 +29,7 @@ public class GrowthMeterController : MonoBehaviour
 
     void UpdateGrowthMeterLevel(float current, float max)
     {
-        var newScale = new Vector3(current / max, 1, 1);
-        GrowthMeterFillTransform.localScale = newScale;
+        var percent = current / max;
+        GrowthMeterFillMaterial.SetFloat("_TintLevel", 1f- percent);
     }
 }

@@ -45,9 +45,11 @@ public class Grower : MonoBehaviour
     public float WaterMeterCurrent = 100f;
     public float WaterMeterMax = 100f;
 
+    int LastGrowthIndex = 0;
+    Stack<Context> CurrentPlantContext;
+
     public delegate void OnPlantFullGrown();
     public event OnPlantFullGrown OnPlantFullGrownHandler;
-
     public delegate void OnWaterUsed(float current, float max);
     public event OnWaterUsed OnWaterUsedHandler;
     public delegate void OnWaterAdded(float ammount, float max);
@@ -97,9 +99,6 @@ public class Grower : MonoBehaviour
         if (iterationFinished)
             OnPlantFullGrownHandler?.Invoke();
     }
-
-
-
     public void Regrow()
     {
         Random.InitState((int)System.DateTime.Now.Ticks);
@@ -109,6 +108,14 @@ public class Grower : MonoBehaviour
 
         Plant = new List<Twig>();
         Parser = new Parser(PlantDNA);
+        CurrentPlantContext = new Stack<Context>();
+        var defaultContext = new Context
+        {
+            TwigWidth = PlantDNA.RootTwigWidth,
+            LastTwigEnd = (Vector2)transform.position,
+        };
+        CurrentPlantContext.Push(defaultContext);
+        LastGrowthIndex = 0;
         Iteration = 0;
 
         Iterate();
@@ -122,28 +129,23 @@ public class Grower : MonoBehaviour
         PlantSkeleton = Parser.Parse();
     }
 
-
     public void Draw()
     {
-        foreach (var t in Plant)
-            Destroy(t.Dummy);
-
-        Plant = new List<Twig>();
-        var contextStack = new Stack<Context>();
-        contextStack.Push(new Context());
-        contextStack.Peek().TwigWidth = PlantDNA.RootTwigWidth;
-        contextStack.Peek().LastTwigEnd = (Vector2)transform.position;
-
         var currentPercent = (float)Iteration / (PlantDNA.AvarageLifetime / _timerMax);
         var maxIndex = (int)(PlantSkeleton.Count * currentPercent);
-        var parametrizedTree = PlantSkeleton.Take(maxIndex);
+        
+        Iteration++;
+
+        if (maxIndex == LastGrowthIndex) return;
+        var parametrizedTree = PlantSkeleton.Skip(LastGrowthIndex).Take(maxIndex - LastGrowthIndex);
+        LastGrowthIndex = maxIndex;
 
         foreach (var data in parametrizedTree)
         {
             if(data.Symbol == 'F')
             {
                 var endLenght = (Vector2.up * PlantDNA.AvarageTwigLenght * PlantDNA.TwigBranchDepthLengthFalloff);
-                var twigRotation = (data.TwigAngleVariation ?? 0) + contextStack.Peek().BaseRotation;
+                var twigRotation = (data.TwigAngleVariation ?? 0) + CurrentPlantContext.Peek().BaseRotation;
 
                 var dummy = new GameObject();
                 dummy.transform.parent = transform;
@@ -151,15 +153,15 @@ public class Grower : MonoBehaviour
 
                 var twig = new Twig()
                 {
-                    StartPosition = contextStack.Peek().LastTwigEnd,
-                    EndPosition = contextStack.Peek().LastTwigEnd + (Vector2)(Quaternion.AngleAxis(twigRotation, Vector3.forward) * endLenght),
+                    StartPosition = CurrentPlantContext.Peek().LastTwigEnd,
+                    EndPosition = CurrentPlantContext.Peek().LastTwigEnd + (Vector2)(Quaternion.AngleAxis(twigRotation, Vector3.forward) * endLenght),
                     Dummy = dummy,
                     LineRenderer = lr
                 };
 
                 lr.positionCount = 2;
                 lr.useWorldSpace = false;
-                lr.startWidth = lr.endWidth = contextStack.Peek().TwigWidth;
+                lr.startWidth = lr.endWidth = CurrentPlantContext.Peek().TwigWidth;
                 lr.material = new Material(Shader.Find("Sprites/Default"));
                 lr.startColor = lr.endColor = PlantDNA.TwigColor;
                 lr.SetPositions(new Vector3[]
@@ -168,25 +170,25 @@ public class Grower : MonoBehaviour
                     (Vector2)twig.EndPosition,
                 });
 
-                contextStack.Peek().LastTwigEnd = twig.EndPosition;
-                contextStack.Peek().TwigWidth *= .98f;
+                CurrentPlantContext.Peek().LastTwigEnd = twig.EndPosition;
+                CurrentPlantContext.Peek().TwigWidth *= .98f;
 
                 Plant.Add(twig);
             }
             else if(data.Symbol == '+' || data.Symbol == '-')
             {
-                contextStack.Peek().BaseRotation += data.BranchAngleVariation ?? 0;
+                CurrentPlantContext.Peek().BaseRotation += data.BranchAngleVariation ?? 0;
             }
             else if(data.Symbol == '[')
             {
-                var newContext = contextStack.Peek().Clone();
+                var newContext = CurrentPlantContext.Peek().Clone();
                 newContext.Depth++;
                 newContext.TwigWidth *= PlantDNA.TwigBranchDepthWidthFalloff;
-                contextStack.Push(newContext);
+                CurrentPlantContext.Push(newContext);
             }
             else if(data.Symbol == ']')
             {
-                contextStack.Pop();
+                CurrentPlantContext.Pop();
             }
             else if (data.Symbol == 'A')
             {
@@ -194,13 +196,12 @@ public class Grower : MonoBehaviour
                 var dir = (twig.EndPosition - twig.StartPosition).normalized;
                 twig.EndPosition += dir * (PlantDNA.AvarageTwigLenght);
 
-                contextStack.Peek().LastTwigEnd = twig.EndPosition;
-                contextStack.Peek().TwigWidth *= .98f;
+                CurrentPlantContext.Peek().LastTwigEnd = twig.EndPosition;
+                CurrentPlantContext.Peek().TwigWidth *= .98f;
 
                 twig.LineRenderer.SetPosition(1, twig.EndPosition);
-                twig.LineRenderer.endWidth = contextStack.Peek().TwigWidth;
+                twig.LineRenderer.endWidth = CurrentPlantContext.Peek().TwigWidth;
             }
         }
-        Iteration++;
     }
 }
