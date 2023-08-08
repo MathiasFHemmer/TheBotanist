@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class Twig
@@ -75,6 +74,8 @@ public class Grower : MonoBehaviour
     private void Update()
     {
         var iterationFinished = Iteration >= (PlantDNA.AvarageLifetime / _timerMax);
+
+        if (iterationFinished) return;
 
         if (Input.GetMouseButtonUp(0))
         {

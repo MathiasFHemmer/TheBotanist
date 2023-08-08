@@ -1,5 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 
 public class GrowthMeterController : MonoBehaviour
@@ -10,6 +9,8 @@ public class GrowthMeterController : MonoBehaviour
     Material GrowthMeterFillMaterial;
     void Start()
     {
+        var temp = transform.DOShakePosition(.2f, randomnessMode: ShakeRandomnessMode.Harmonic).SetLoops(-1);
+
         GrowSimulator = GameObject.FindGameObjectWithTag(GrowSimualtorTag).GetComponent<Grower>();
         if (GrowSimulator == null)
         {
@@ -30,6 +31,6 @@ public class GrowthMeterController : MonoBehaviour
     void UpdateGrowthMeterLevel(float current, float max)
     {
         var percent = current / max;
-        GrowthMeterFillMaterial.SetFloat("_TintLevel", 1f- percent);
+        GrowthMeterFillMaterial.SetFloat("_TintLevel", percent);
     }
 }
